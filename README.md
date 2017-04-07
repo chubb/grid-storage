@@ -1,3 +1,3 @@
-Initially, this is a simple techno-economic comparison of flywheel and Li Ion grid energy storage.
+Initially, this repo is a basic economic comparison of flywheel and Li Ion grid storage.  Ultimately, it would be cool to include an accurate model of grid storage and create techno-economic models for various storage technologies.
 
-Ultimately, it would be cool to make an accurate model of the economics of grid energy storage, and include a techno-economic model for the various available and potential storage technologies.
+The most recent version of the report can be read by clicking on the .ipynb file on Github.  Github will render the Jupyter Notebook automatically!  The version history of the report is best viewed in the .py file of the same name.

@@ -28,14 +28,13 @@ def PrintFlywheelCosts(cost, total_flywheel_icc, rated_energy):
 
 def PlotBatteryLife60():
     dod = 0.75
-    (num_cycles, capacity_at_eol) = BatteryLife60(dod)
+    (num_cycles, capacity_at_eol) = liion.BatteryLife60(dod)
     print("""As shown in the plot, when charge cycles are to a depth of discharge
 of %2.0f%%, the battery capacity will be 60%% of its initial capacity after %4.0f cycles.""" % 
     (dod*100.0, num_cycles))
     
     dods = np.array([0.01, .05, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.0])
-    (num_cycles, capacity_at_eol) = BatteryLife60(dods)
-    #num_cycles = [BatteryLife60(x) for x in dods]
+    (num_cycles, capacity_at_eol) = liion.BatteryLife60(dods)
     pylab.semilogy(dods, num_cycles)
     pylab.title("Number of cycles unil End of Life\nWhere End of Life is defined as 60% of initial capacity")
     pylab.grid("on")

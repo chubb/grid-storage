@@ -2,23 +2,25 @@
 # coding: utf-8
 
 # # Preface
-# This preface imports libraries and custom functions to build the figures in the document.  Feel free to ignore it and skip stragiht to the Abstract.
+# This preface imports custom libraries to support the simulation.  Feel free to ignore it and skip stragiht to the Abstract.
 
 # In[1]:
 
 get_ipython().magic('pylab inline')
 import numpy as np
 
-# Import custom libraries.
-from financial import *
-from li_ion import *
+# Import libraries defined elsewhere in this repo.
+import financial as financial
+import li_ion as liion
 
-# Include plotting functions
+# Include plotting functions.
 exec(open("figure_plotters.py").read())
 
 
 # # Abstract
-# Here we will calculate the value of installing a flywheel grid energy storage system and compare it directly to a similarly sized Lithium Ion battery installation.
+# In this report we will calculate the value of installing a flywheel grid energy storage system and compare it directly to a similarly sized Lithium Ion battery installation.  This work focuses on the *relative* profits of Lithium Ion versus Flywheel installation.  The reported *absolute* profits have very high uncertainty.  For example, the cost of the electronics used to feed the DC bus are common to both systems, so they are completely ignored.
+# 
+# The final plot in this report summarizes the present value of each investment.
 
 # # Parameters
 # First we will define system parameters.
@@ -122,10 +124,10 @@ pm_bat = BatteryParameters()
 
 
 # # Initial Capital Cost
-# Items that are common between the flywheel system and the Li Ion system are not considered.  For this rough approximation, that includes the power electronics that create the DC bus power, the electrical infrastructure, and the civil works installation costs.  We ~will~ consider the ICC of the factory-produced parts.
+# Items that are common between the flywheel system and the lithium ion system are not considered.  That includes the power electronics that create the DC bus power, the electrical infrastructure, and the civil works installation costs.  We ~will~ consider the ICC of the factory-produced parts.
 # 
-# ## Flywheel Sizing and Cost
-# When using a cylindrical rotor, rated energy and material properties determine the mass of the rotor.  Any shape cylinder with a particular mass will be capable of storing the same energy at the material yield strength.  The following function finds designs a cylindrical flywheel rotor. 
+# ## Flywheel Sizing
+# When using a cylindrical rotor, the rated energy and material properties determine the mass of the rotor.  Any shape cylinder with a particular mass and made of a given material, will be capable of storing the same energy.  The following function designs a cylindrical flywheel rotor. 
 
 # In[3]:
 
@@ -177,7 +179,7 @@ PrintMLR(m, l, r, specific_energy)
 
 
 # ## Flywheel Initial Capital Cost
-# Here we find the cost of the manufactured flywheel system by making estimates for each of the subsystems and then summing.
+# Here we find the cost of the manufactured flywheel system by making estimates for each of the subsystems.
 
 # In[5]:
 
@@ -206,6 +208,7 @@ cost['mc'] = pm_fw['financials']['mc_cost_per_watt'] * pm_fw['system']['rated_po
 # Swag a cost at the vacuum system.
 cost['vacuum'] = 400.0  # Swag.
 
+# What did I miss?
 cost['extras'] = 3000.0
 
 # Sum up the costs.
@@ -215,11 +218,11 @@ PrintFlywheelCosts(cost, total_flywheel_icc, pm_fw['system']['rated_energy'])
 
 
 # ## Battery Initial Capital Cost
-# Estimates of Li Ion costs are wide ranging.  CleanTechnica [1] has a nice plot summarizing the spread.  
+# Estimates of lithium ion costs are wide ranging.  CleanTechnica [1] has a nice plot summarizing the spread.  
 # 
-# <img src="EV-Battery-Prices.png" style="height: 400px;">
+# <img src="images/EV-Battery-Prices.png" style="height: 400px;">
 # 
-# For the purpose of estimating Li Ion cell ICC and replacement costs, we will fit an exponential decay roughly equivalent to the black line in their plot and asymptotic to $100/kWh.
+# For the purpose of estimating lithium ion cell ICC and replacement costs, we will fit an exponential decay roughly equivalent to the black line above, and asymptotic to `$`100/kWh.
 # 
 # 
 # [1] http://c1cleantechnicacom-wpengine.netdna-ssl.com/files/2016/05/Nature-EV-Battery-Prices-Cheaper-than-2020-Projections.png
@@ -235,9 +238,9 @@ PlotLiIonCost()
 
 # # Operation
 # ## Define the Market
-# It's unclear to me how the market for grid energy storage will function, so to make progress, I've made some assumptions.  Since these assumptions have a large effect on absolute revenue and profit, my guess is that since they effect the Li Ion and flywheel storage in a similar way, the comparison of relative revenue remains valid.
+# It's unknown to me how the market for grid energy storage will function, so to make progress, I've made some assumptions.  These assumptions have a large effect on absolute revenue and profit, but my guess is that since they effect the lithium ion and flywheel storage in a similar way, the comparison of relative revenue remains valid.
 # 
-# * Assume that every day a peaker plant runs during peak demand and any storage added to the grid reduces the peaker plant's load.  Therefore, there is always opportunity store as much energy as the storage provider wishes.  
+# * Assume that every day a peaker plant runs during peak demand and any storage added to the grid reduces the peaker plant's load.  Therefore, there is always opportunity to store as much energy as the storage provider wishes.  
 # * Assume that the peak deficit in production lags peak over-production by 4 hours.
 # * Assume the storage provider makes revenue by buying power at a low purchase price and selling it back later at a higher selling price.
 # 
@@ -256,19 +259,19 @@ def FlywheelDailyCycle(E_charge, purchase_price, sale_price, eff_round_trip, tim
 
 # ## Battery Revenue and Costs
 # ### Battery Capacity Deterioration
-# Battery capacity deteriorates with several variables including temperature, speed-of-charge, number and depth of charge cycles.  In this analysis, we base battery capacity deterioration solely on the number and depth of charge cycles.  
+# Battery capacity deteriorates with several variables including temperature, speed-of-charge, and number and depth of charge cycles.  Here I base battery capacity deterioration solely on the number and depth of charge cycles.  The following plot shows the life data used in this analysis.
 
 # In[8]:
 
 PlotBatteryLife60()
 
 
-# This data is the basis of a function named <code>UpdateBatteryCapacity()</code> defined in <code>li_ion.py</code>.  It reduces battery capacity each time the battery is used to store and release energy. Now that we have a function for reducing battery capacity with age, we can write a function to estimate battery revenues and costs during operation.
+# This data is the basis of a function named <code>UpdateBatteryCapacity()</code> defined in <code>li_ion.py</code>.  It is used to reduce the battery capacity each time the battery stores and releases energy in the simulation. Now that we have a function for reducing battery capacity with age, we can write a function to estimate battery revenues and costs during operation.  The following function will represent the daily cycle.  It will be run for each day in the expected life of the installation.
 
 # In[9]:
 
 def BatteryDailyCycle(E_charge_req, purchase_price, sale_price, eff_round_trip, capacity_0, capacity, day_num):
-    # To prevent premature degradation Li Ion is typically limited to 15-90% of full capacity.
+    # To prevent premature degradation Li Ion is typically limited to the range 15-90% of full capacity.
     healthy_charge_limit = 0.9 - 0.15  
     
     E_charge = min(healthy_charge_limit * capacity_0,
@@ -278,7 +281,7 @@ def BatteryDailyCycle(E_charge_req, purchase_price, sale_price, eff_round_trip, 
     revenue = E_discharge * sale_price - E_charge * purchase_price
     
     # Every time the battery is used, its capacity is reduced.
-    capacity = UpdateBatteryCapacity(capacity_0, capacity, E_charge)
+    capacity = liion.UpdateBatteryCapacity(capacity_0, capacity, E_charge)
     
     cost = pm_bat['O_and_M_cost']
     # If the capacity falls below a threshold, then buy a new set of cells.
@@ -290,12 +293,12 @@ def BatteryDailyCycle(E_charge_req, purchase_price, sale_price, eff_round_trip, 
 
 # # Financial Simulation
 
-# In[10]:
+# In[24]:
 
 # Number of days of operation.
 n = 365 * 25  # [days]
 
-# Time energy stored each day.
+# Time between charge and discharge each day.
 time_stored = 4.0 * 3600.0  # [sec]
 
 # Initialize output and state vectors.
@@ -333,22 +336,25 @@ for i in range(1, n):
 
 # Find the present value of the each future cash flow.
 discount_rate = 0.08/365.0  # [#]  The interest rate to discount future cash flows.
-present_value_fw = PV(discount_rate, revenues_fw - costs_fw)
-present_value_bat = PV(discount_rate, revenues_bat - costs_bat)
+present_value_fw = financial.PV(discount_rate, revenues_fw - costs_fw)
+present_value_bat = financial.PV(discount_rate, revenues_bat - costs_bat)
 
 # Plot.
 year = pm['start_year'] + np.array(range(n))/365.0
 figure(figsize=(15, 8))
-plot(year, cumsum(revenues_fw - costs_fw), "b:", label="Flywheel Cash Flow")
-plot(year, cumsum(present_value_fw), "b", label="Flywheen PV")
-plot(year, cumsum(revenues_bat - costs_bat), "g:", label="Battery Cash Flow")
-plot(year, cumsum(present_value_bat), "g", label="Battery PV")
+plot(year, cumsum(revenues_fw - costs_fw), color=[.7, .7, 1], linestyle=":", label="Cash Flow: Flywheel")
+plot(year, cumsum(revenues_bat - costs_bat), color=[.7, 1, .7], linestyle=":", label="Cash Flow: Battery")
+plot(year, cumsum(present_value_fw), "b", label="PV: Flywheel")
+plot(year, cumsum(present_value_bat), "g", label="PV: Battery")
 legend()
 grid("on")
 title("Cummulative Cash Flows and Present Values")
 ylabel("Cumulative Dollars [$]")
 xlabel("Time [years]");
 
+
+# # Conclusion
+# Given my (imperfect) inputs and calculations, when making an investment of about `$`10k in grid storage, the present value of the returns from flywheels are about `$`4k more over the course of 25 years.
 
 # In[ ]:
 
