@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # # Preface
-# This preface imports custom libraries to support the simulation.  Feel free to ignore it and skip stragiht to the Abstract.
+# This preface imports libraries to support the simulation.  Feel free to ignore it and skip stragiht to the Abstract
 
 # In[1]:
 
@@ -154,11 +154,11 @@ def DesignCylindricalFlywheel(energy, yield_strength, poisson_ratio, density, sf
     # Find the mass.
     m = energy/specific_energy
 
-    # Assume the flywheel has the same length and diameter.  This should be sufficient to 
+    # Assume the flywheel has the same length and radius.  This should be sufficient to 
     # prevent the first bending mode.
     volume = m/density
-    l = (4.0/np.pi * volume)**(1/3)
-    r = l/2.0
+    r = (volume/np.pi)**(1/3)
+    l = r
 
     return m, l, r, specific_energy
 
