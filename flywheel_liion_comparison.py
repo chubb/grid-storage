@@ -39,13 +39,13 @@ def CommonParameters():
     'daily_storage_request': 29.0 * c['J_per_kWh'],  # [J]
 
     # Discount rate.
-    'annual_discount_rate': 0.04,  # [#]
+    'annual_discount_rate': 0.07,  # [#]
 
     # Purchase Price of Energy, specified in $/kWh.
-    'purchase_price': 0.01/c['J_per_kWh'],  # [$/J]
+    'purchase_price': 0.03/c['J_per_kWh'],  # [$/J]
 
     # Sale Price of Energy specified in $/kWh.
-    'sale_price': 0.12/c['J_per_kWh'],  # [$/J] 
+    'sale_price': 0.15/c['J_per_kWh'],  # [$/J] 
     
     # Year the project is built.
     'start_year': 2017,  # [calendar year]
@@ -54,8 +54,10 @@ def CommonParameters():
 
 def BatteryParameters():
     pm_bat = {
-    # Initial theoretical capacity specified in kWh.
-    'capacity_0': 29.0/0.75  * c['J_per_kWh'], # [J]
+    # Initial capacity specified in kWh. The 1.15 factor was tuned to find
+    # the most profitable capacity. If capacity is too small then the batteries wear out
+    # very quickly, if it is too large then initial capital cost is too large.
+    'capacity_0': 29.0 * 1.15 * c['J_per_kWh'], # [J]
         
     # The round trip efficiency.
     'eff_round_trip': 0.80,  # [#]
@@ -225,7 +227,7 @@ PrintFlywheelCosts(cost, total_flywheel_icc, pm_fw['system']['rated_energy'])
 # For the purpose of estimating lithium ion cell ICC and replacement costs, we will fit an exponential decay roughly equivalent to the black line above, and asymptotic to `$`100/kWh.
 # 
 # 
-# [1] http://c1cleantechnicacom-wpengine.netdna-ssl.com/files/2016/05/Nature-EV-Battery-Prices-Cheaper-than-2020-Projections.png
+# [1] <a "href:http://www.nature.com/articles/nclimate2564.epdf?referrer_access_token=H9Rj7kdKUhrhz6Fb5ewzM9RgN0jAjWel9jnR3ZoTv0M00Vb3KgW1MD8qozWNCeynzkwpvLxVPLibQoJbfe-QKEu0ppgTXvcLlb8Vwz_nzK-yAn8RNMmZvOHZVqZQEn1U5XojC5FhPiQ23mWhSt0_N5L3eb1jQZedFMZw2y16duSxwzW7OVQ-V925n7gY-a1vMmlwPWTvamnQjRcKxGJMdFJW6rBZct3i6H7-3u7oczw%3D&tracking_referrer=thinkprogress.org"> Rapidly falling costs of battery packs for electric vehicles, Nature</a>
 
 # In[6]:
 
@@ -271,12 +273,7 @@ PlotBatteryLife60()
 # In[9]:
 
 def BatteryDailyCycle(E_charge_req, purchase_price, sale_price, eff_round_trip, capacity_0, capacity, day_num):
-    # To prevent premature degradation Li Ion is typically limited to the range 15-90% of full capacity.
-    healthy_charge_limit = 0.9 - 0.15  
-    
-    E_charge = min(healthy_charge_limit * capacity_0,
-                   capacity,
-                   E_charge_req)
+    E_charge = min(capacity, E_charge_req)
     E_discharge = eff_round_trip * E_charge
     revenue = E_discharge * sale_price - E_charge * purchase_price
     
@@ -293,7 +290,7 @@ def BatteryDailyCycle(E_charge_req, purchase_price, sale_price, eff_round_trip, 
 
 # # Financial Simulation
 
-# In[24]:
+# In[10]:
 
 # Number of days of operation.
 n = 365 * 25  # [days]
@@ -335,7 +332,7 @@ for i in range(1, n):
         i)
 
 # Find the present value of the each future cash flow.
-discount_rate = 0.08/365.0  # [#]  The interest rate to discount future cash flows.
+discount_rate = pm['annual_discount_rate']/365.0  # [#]  The daily discount rate.
 present_value_fw = financial.PV(discount_rate, revenues_fw - costs_fw)
 present_value_bat = financial.PV(discount_rate, revenues_bat - costs_bat)
 
@@ -352,9 +349,32 @@ title("Cummulative Cash Flows and Present Values")
 ylabel("Cumulative Dollars [$]")
 xlabel("Time [years]");
 
+# Compare the flywheel and battery after 25 years.
+pv_fw = sum(present_value_fw)
+pv_bat = sum(present_value_bat)
+print("Flywheel_PV - LiIon_PV = Flywheel Advantage")
+print("%11.0f - %8.0f = $%4.0f" % (pv_fw, pv_bat, pv_fw - pv_bat))
+
+figure(figsize=(15, 4))
+plot(year, E_discharge_fw/c['J_per_kWh'], label="Flywheel")
+plot(year, E_discharge_bat/c['J_per_kWh'], label="Battery")
+legend()
+grid("on")
+ylabel("Daily Discharge Energy [kWh]\n\n")
+xlabel("Time [years]");
+
 
 # # Conclusion
-# Given my (imperfect) inputs and calculations, when making an investment of about `$`10k in grid storage, the present value of the returns from flywheels are about `$`4k more over the course of 25 years.
+# Given my (imperfect) inputs and calculations, when making an investment of about `$`10k in grid storage, the present value of the returns from flywheels compared to Lithium Ion batteries, are about `$`3.5k more over the course of 25 years.  This appears to be roughly true for a wide range of power prices.
+# 
+# Although not shown in the report, when the project start date is moved to 2024 or later, Lithium Ion batteries become the marginally better investment due to their ever-dropping cost.
+# 
+# 
+# # Potential Next Steps
+# * The use of a discount rate implicitly assumes that the utility wants to compare the investment in energy storage to an investment in the financial market. However, the utility must invest in ~something~ to supply power during peak demand, so it may be more accurate to compare these storage investments to an investment in the traditional peak shaving strategy: a natural gas peaker plant.
+# * Move most of the code from this notebook to .py files and find a way to automatically find input sensitivity.
+# * More detailed estimates of the other costs associated with the initial installation and maintenance of batteries.  For example, is a cooling system required?
+# * Itemize installation costs.  A large percentage of the ICC for both systems will be installation.  If one of the systems is especially inexpensive to install, that could be the deciding factor.
 
 # In[ ]:
 
