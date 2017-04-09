@@ -18,9 +18,9 @@ exec(open("figure_plotters.py").read())
 
 
 # # Abstract
-# In this report we will calculate the value of installing a flywheel grid energy storage system and compare it directly to a similarly sized Lithium Ion battery installation.  This work focuses on the *relative* profits of Lithium Ion versus Flywheel installation.  The reported *absolute* profits have very high uncertainty.  For example, the cost of the electronics used to feed the DC bus are common to both systems, so they are completely ignored.
+# In this report we will calculate the value of installing a flywheel grid energy storage system and compare it directly to a similarly sized lithium ion battery installation.  This work focuses on the *relative* profits of Lithium Ion versus Flywheel installation.  The reported *absolute* profits have very high uncertainty.  For example, the cost of the electronics used to feed the DC bus are common to both systems, so they are ignored.
 # 
-# The final plot in this report summarizes the present value of each investment.
+# This report aims to compare the two storage technologies by comparing the present value of their revenues, operation and maintenance costs, and initial capital cost.  The cumulative present value plots at the end of the report are the summary.
 
 # # Parameters
 # First we will define system parameters.
@@ -30,6 +30,7 @@ exec(open("figure_plotters.py").read())
 def PhysicalConstants():
     c = {
     'J_per_kWh': 3600e3,  # [J/kWh]
+    'sec_per_hour': 3600.0,  # [sec/hour]
     }
     return c
 
@@ -49,6 +50,9 @@ def CommonParameters():
     
     # Year the project is built.
     'start_year': 2017,  # [calendar year]
+        
+    # Time between charge and discharge each day, specified in hours.
+    'time_stored': 4.0 * c['sec_per_hour']  # [sec]
     }
     return pm
 
@@ -295,10 +299,7 @@ def BatteryDailyCycle(E_charge_req, purchase_price, sale_price, eff_round_trip, 
 # Number of days of operation.
 n = 365 * 25  # [days]
 
-# Time between charge and discharge each day.
-time_stored = 4.0 * 3600.0  # [sec]
-
-# Initialize output and state vectors.
+# Initialize the output and state vectors.
 E_discharge_fw = np.zeros(n)
 revenues_fw = np.zeros(n)
 costs_fw = np.zeros(n)
@@ -319,7 +320,7 @@ for i in range(1, n):
         pm['purchase_price'],
         pm['sale_price'],
         pm_fw['system']['eff_round_trip'],
-        time_stored,
+        pm['time_stored'],
         pm_fw['system']['parasitic_power_loss'])
     
     (E_discharge_bat[i], revenues_bat[i], costs_bat[i], capacities_bat[i]) = BatteryDailyCycle(
@@ -336,8 +337,21 @@ discount_rate = pm['annual_discount_rate']/365.0  # [#]  The daily discount rate
 present_value_fw = financial.PV(discount_rate, revenues_fw - costs_fw)
 present_value_bat = financial.PV(discount_rate, revenues_bat - costs_bat)
 
-# Plot.
+########
+# Plot #
+########
 year = pm['start_year'] + np.array(range(n))/365.0
+
+figure(figsize=(15, 4))
+plot(year, E_discharge_fw/c['J_per_kWh'], label="Flywheel")
+plot(year, E_discharge_bat/c['J_per_kWh'], label="Battery")
+legend()
+grid("on")
+title("Daily Energy Sold")
+ylabel("Daily Discharge Energy [kWh]\n\n")
+xlabel("Time [years]");
+
+
 figure(figsize=(15, 8))
 plot(year, cumsum(revenues_fw - costs_fw), color=[.7, .7, 1], linestyle=":", label="Cash Flow: Flywheel")
 plot(year, cumsum(revenues_bat - costs_bat), color=[.7, 1, .7], linestyle=":", label="Cash Flow: Battery")
@@ -345,7 +359,7 @@ plot(year, cumsum(present_value_fw), "b", label="PV: Flywheel")
 plot(year, cumsum(present_value_bat), "g", label="PV: Battery")
 legend()
 grid("on")
-title("Cummulative Cash Flows and Present Values")
+title("Cummulative Cash Flow and Cummulative Present Value")
 ylabel("Cumulative Dollars [$]")
 xlabel("Time [years]");
 
@@ -355,19 +369,11 @@ pv_bat = sum(present_value_bat)
 print("Flywheel_PV - LiIon_PV = Flywheel Advantage")
 print("%11.0f - %8.0f = $%4.0f" % (pv_fw, pv_bat, pv_fw - pv_bat))
 
-figure(figsize=(15, 4))
-plot(year, E_discharge_fw/c['J_per_kWh'], label="Flywheel")
-plot(year, E_discharge_bat/c['J_per_kWh'], label="Battery")
-legend()
-grid("on")
-ylabel("Daily Discharge Energy [kWh]\n\n")
-xlabel("Time [years]");
-
 
 # # Conclusion
 # Given my (imperfect) inputs and calculations, when making an investment of about `$`10k in grid storage, the present value of the returns from flywheels compared to Lithium Ion batteries, are about `$`3.5k more over the course of 25 years.  This appears to be roughly true for a wide range of power prices.
 # 
-# Although not shown in the report, when the project start date is moved to 2024 or later, Lithium Ion batteries become the marginally better investment due to their ever-dropping cost.
+# Although not shown in the report, when the project start date is moved to 2024 or later, Lithium Ion batteries become the marginally better investment due to their asymptotically-decreasing cost.
 # 
 # 
 # # Potential Next Steps
