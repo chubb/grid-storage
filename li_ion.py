@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def UpdateBatteryCapacity(capacity_0, capacity, energy_stored):
     """Find the battery capacity as a function of previous use.
     
@@ -12,6 +13,7 @@ def UpdateBatteryCapacity(capacity_0, capacity, energy_stored):
        The updated battery capacity.
     """
     assert(energy_stored <= capacity_0)
+    
     dod = energy_stored/capacity_0
 
     (num_cycles, capacity_at_eol) = BatteryLife60(dod)
@@ -19,13 +21,6 @@ def UpdateBatteryCapacity(capacity_0, capacity, energy_stored):
     reduction_in_capacity = (1.0 - capacity_at_eol) * 1.0/num_cycles
 
     return capacity - reduction_in_capacity * capacity_0
-
-
-# def DODtoReductionInCapacity(dod):
-#     (num_cycles, capacity_at_eol) = BatteryLife60(dod)
-
-#     # Reduction in capacity.
-#     return (1.0 - capacity_at_eol) * 1.0/num_cycles
 
 
 def BatteryLife60(dod):
