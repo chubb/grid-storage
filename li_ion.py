@@ -13,18 +13,20 @@ def UpdateBatteryCapacity(capacity_0, capacity, energy_stored):
        The updated battery capacity.
     """
     assert(energy_stored <= capacity_0)
-    
+
     dod = energy_stored/capacity_0
 
     (num_cycles, capacity_at_eol) = BatteryLife60(dod)
 
+    # Find the percentage reduction in capacity.
     reduction_in_capacity = (1.0 - capacity_at_eol) * 1.0/num_cycles
 
     return capacity - reduction_in_capacity * capacity_0
 
 
 def BatteryLife60(dod):
-    """
+    """ Find the battery life in number of cycles given a depth of discharge.
+
     Args:
         dod: Depth of Discharge
     

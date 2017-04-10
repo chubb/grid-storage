@@ -1,7 +1,18 @@
+
+def PlotSimEnergy(year, E_discharge_fw, E_discharge_bat):
+    figure(figsize=(15, 4))
+    plot(year, E_discharge_fw/c['J_per_kWh'], label="Flywheel")
+    plot(year, E_discharge_bat/c['J_per_kWh'], label="Battery")
+    legend()
+    grid("on")
+    title("Daily Energy Sold")
+    ylabel("Daily Discharge Energy [kWh]\n\n")
+    xlabel("Time [years]");
+
 ############
 # Flywheel #
 ############
-def PrintMLR(m, l, r, specific_energy):
+def PrintFlywheelSpecs(m, l, r, specific_energy):
     specific_energy_Wh_per_kg = specific_energy / c['J_per_kWh'] * 1000.0
     
     print("Cylindrical Flywheel Specs (rotor only):")
